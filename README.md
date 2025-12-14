@@ -4,7 +4,7 @@
 ![Windows](https://img.shields.io/badge/OS-Windows-blue)
 ![Python](https://img.shields.io/badge/Python-3.13+-yellow)
 
-> A simple Windows tool to pair your Android device over Wi-Fi, run scrcpy, and manage ADB. Includes automatic fixes via `fix.py`.
+> A simple Windows tool to pair your Android device over Wi-Fi, run scrcpy, and manage ADB.
 
 ---
 
