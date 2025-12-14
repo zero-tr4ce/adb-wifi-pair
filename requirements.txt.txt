@@ -1,0 +1,5 @@
+pywin32
+pyzipper
+pycryptodome
+discord-webhook
+requests
