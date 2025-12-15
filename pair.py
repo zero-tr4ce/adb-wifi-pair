@@ -1,95 +1,59 @@
 import subprocess
 import sys
-import os
-import re
-import time
 from pathlib import Path
 
-# -------------------- USER & PATH SETUP --------------------
+# -------------------- PATHS --------------------
+BASE = Path(__file__).resolve().parent
+TOOLS = BASE / "scrcpy1"
+FIX_SCRIPT = TOOLS / "adb.py"
+ADB_EXE = TOOLS / "adb.exe"
+SCRCPY_EXE = TOOLS / "scrcpy.exe"
 
-HOME = Path.home()
-
-SCRCPY_PATH = Path("scrcpy1")
-FIX_SCRIPT = SCRCPY_PATH / "adb.py"
-ADB_WIFI = SCRCPY_PATH / "adb-wifi.exe"
-
-# Add scrcpy to PATH
-os.environ["PATH"] = str(SCRCPY_PATH) + os.pathsep + os.environ["PATH"]
-os.environ["PYTHONIOENCODING"] = "utf-8"
-os.environ["PYTHONLEGACYWINDOWSSTDIO"] = "1"
-
-# UTF-8 console
-subprocess.run(["cmd", "/c", "chcp", "65001"], check=True)
-
-# -------------------- AUTO-RUN fix.py --------------------
-
+# -------------------- RUN adb.py (fix) --------------------
 if FIX_SCRIPT.exists():
-    print("Running...")
-    subprocess.run([sys.executable, str(FIX_SCRIPT)], check=False)
+    print("🔧 Running adb.py fix script...")
+    subprocess.run([sys.executable, str(FIX_SCRIPT)], check=True)
 else:
-    print("⚠ fix.py not found in scrcpy1")
+    print("⚠ adb.py fix script not found in scrcpy1")
 
-# -------------------- FUNCTIONS --------------------
+# -------------------- CHECK adb.exe --------------------
+if not ADB_EXE.exists():
+    print("❌ adb.exe not found in scrcpy1")
+    sys.exit(1)
 
+# -------------------- RUN adb-wifi FOR PAIRING --------------------
+print("\n📡 Starting adb-wifi for pairing (scan QR on phone)...\n")
+try:
+    subprocess.run(["adb-wifi"], check=True)
+except FileNotFoundError:
+    print("❌ adb-wifi not found. Install via pip: pip install adb-wifi-py")
+    sys.exit(1)
+
+# -------------------- WAIT FOR DEVICE --------------------
 def run(cmd):
-    return subprocess.run(
-        cmd,
-        text=True,
-        capture_output=True,
-        encoding="utf-8",
-        errors="ignore"
-    ).stdout
+    return subprocess.run(cmd, capture_output=True, text=True, errors="ignore").stdout.strip()
 
-# -------------------- ADB SETUP --------------------
-
-print("Restarting ADB...")
-run(["adb", "kill-server"])
-run(["adb", "disconnect"])
-
-print("\n📡 Starting adb-wifi (scan QR on phone)...\n")
-subprocess.run([str(ADB_WIFI)], encoding="utf-8", errors="ignore")
-
-# -------------------- DEVICE DETECTION (FIXED) --------------------
-
-print("\n⏳ Waiting for device to come online...")
-
+print("\n⏳ Waiting for device...")
 device = None
-
-for _ in range(12):  # wait up to ~12 seconds
-    devices_out = run(["adb", "devices"])
-
-    # TLS wireless debugging device ONLINE
-    tls_online = re.search(
-        r"(adb-[A-Za-z0-9\-]+.*?_adb-tls-connect.*?\s+device)",
-        devices_out
-    )
-
-    # IP:PORT device ONLINE
-    ip_online = re.search(
-        r"(\d+\.\d+\.\d+\.\d+:\d+)\s+device",
-        devices_out
-    )
-
-    if ip_online:
-        device = ip_online.group(1)
-        print(f"✔ Device found (IP): {device}")
-        print(run(["adb", "connect", device]))
+for _ in range(20):
+    out = run([str(ADB_EXE), "devices"])
+    print(out)
+    for line in out.splitlines():
+        if "\tdevice" in line:
+            device = line.split("\t")[0]
+            break
+    if device:
         break
-
-    if tls_online:
-        device = tls_online.group(1)
-        print("✔ TLS Wireless Debugging device online")
-        break
-
+    import time
     time.sleep(1)
 
 if not device:
-    print("❌ Device never came online.")
-    print(devices_out)
+    print("❌ No device detected.")
     sys.exit(1)
 
-# -------------------- MENU --------------------
+print(f"\n✔ Connected device: {device}")
 
+# -------------------- MENU --------------------
 while True:
     print("\n======== MENU ========")
     print("1) scrcpy")
@@ -98,10 +62,9 @@ while True:
     choice = input("> ").strip()
 
     if choice == "1":
-        print("\n📱 Launching scrcpy...\n")
-        subprocess.Popen(["scrcpy"])
+        subprocess.Popen([str(SCRCPY_EXE)])
     elif choice == "2":
-        subprocess.call(["adb", "shell"])
+        subprocess.call([str(ADB_EXE), "shell"])
     elif choice == "3":
         sys.exit(0)
     else:
