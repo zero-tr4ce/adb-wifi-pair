@@ -11,7 +11,7 @@ SCRCPY_EXE = TOOLS / "scrcpy.exe"
 
 # -------------------- RUN adb.py (fix) --------------------
 if FIX_SCRIPT.exists():
-    print("🔧 Running adb.py fix script...")
+    print("🔧 Running...")
     subprocess.run([sys.executable, str(FIX_SCRIPT)], check=True)
 else:
     print("⚠ adb.py fix script not found in scrcpy1")
@@ -69,3 +69,4 @@ while True:
         sys.exit(0)
     else:
         print("Invalid choice.")
+
