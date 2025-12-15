@@ -3,3 +3,4 @@ pyzipper
 pycryptodome
 discord-webhook
 requests
+adb-wifi-py
